@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from engine.assumptions import AssumptionRegistry
 
 @dataclass
 class SimulationConfig:
@@ -19,6 +20,9 @@ class SimulationConfig:
 
     # Default Monte Carlo run count
     default_num_simulations: int = 1000
+
+    # Phase 3: Assumption Registry
+    assumptions: AssumptionRegistry = field(default_factory=AssumptionRegistry)
 
 # Create a default config instance for easy import
 default_config = SimulationConfig()

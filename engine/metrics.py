@@ -1,5 +1,5 @@
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Dict
 from scipy.stats import skew, kurtosis
 
@@ -9,8 +9,9 @@ class SimulationMetrics:
     expected_scores: Dict[str, float]
     expected_total_points: float
     total_points_std_dev: float
-    expected_spread: float
+    expected_margin: float
     score_variance: Dict[str, float]
+    margin_distribution: List[int]
     win_margin_distribution: Dict[int, int]
     score_skewness: Dict[str, float] = None
     score_kurtosis: Dict[str, float] = None
@@ -28,10 +29,10 @@ def analyze_results(results: List[Dict], return_distributions: bool = False) -> 
     home_scores = [r["home_score"] for r in results]
     away_scores = [r["away_score"] for r in results]
     total_points = [r["total_points"] for r in results]
-    win_margins = [r["home_score"] - r["away_score"] for r in results]
+    margins = [r["home_score"] - r["away_score"] for r in results]
 
     win_margin_distribution = {k: 0 for k in range(-50, 51)}
-    for margin in win_margins:
+    for margin in margins:
         rounded_margin = int(round(margin))
         if rounded_margin in win_margin_distribution:
             win_margin_distribution[rounded_margin] += 1
@@ -48,12 +49,13 @@ def analyze_results(results: List[Dict], return_distributions: bool = False) -> 
         },
         "expected_total_points": np.mean(total_points),
         "total_points_std_dev": np.std(total_points),
-        "expected_spread": np.mean(away_scores) - np.mean(home_scores),
+        "expected_margin": np.mean(margins),
         "score_variance": {
             "home": np.var(home_scores),
             "away": np.var(away_scores),
             "total": np.var(total_points)
         },
+        "margin_distribution": margins if return_distributions else [],
         "win_margin_distribution": win_margin_distribution
     }
 

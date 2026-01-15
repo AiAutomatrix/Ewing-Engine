@@ -3,11 +3,9 @@
 import random
 import numpy as np
 from flask import Blueprint, request, jsonify
-from data.teams import TEAM_DATA, LEAGUE_AVG_OFF_RATING
-from engine.simulation import simulate_game
-from engine.models import HeuristicModel
+from data.teams import TEAM_DATA
+from engine.simulation import run_simulation_with_config
 from engine.config import default_config
-from engine.metrics import analyze_results
 from dataclasses import asdict
 
 # --- Constants ---
@@ -27,7 +25,6 @@ def simulate():
     
     # Internal flags not exposed in the API for now
     return_distributions = data.get("return_distributions", False)
-    log_games = data.get("log_games", False) 
 
     if not home_team_id or not away_team_id:
         return jsonify({"error": "Missing team identifiers"}), 400
@@ -42,13 +39,7 @@ def simulate():
         random.seed(random_seed)
         np.random.seed(random_seed)
 
-    model = HeuristicModel(league_avg_off_rating=LEAGUE_AVG_OFF_RATING)
-
-    # Core simulation loop
-    results = [simulate_game(model, home_team_id, away_team_id, config=default_config, log_game=log_games) for _ in range(num_simulations)]
-
-    # Analyze results using the metrics module
-    metrics = analyze_results(results, return_distributions)
+    metrics = run_simulation_with_config(home_team_id, away_team_id, num_simulations, default_config)
 
     # Format the output
     output = {
@@ -58,15 +49,10 @@ def simulate():
             "random_seed": random_seed,
             "home_team": home_team_id,
             "away_team": away_team_id,
-            "model": model.__class__.__name__
+            "model": "HeuristicModel"
         }
     }
     
-    # Add raw logs if requested (for internal debugging)
-    if log_games:
-        output["logs"] = [r["log"] for r in results if "log" in r]
-
-
     # The old API returned the raw distributions in a separate key
     # The new metrics object nests them inside the summary.
     # To maintain the API contract, we will move them.

@@ -20,7 +20,7 @@ def test_analyze_results_deterministic():
 
     assert metrics1.win_probability["home"] == metrics2.win_probability["home"]
     assert metrics1.expected_scores["away"] == metrics2.expected_scores["away"]
-    assert np.isclose(metrics1.expected_spread, metrics2.expected_spread)
+    assert np.isclose(metrics1.expected_margin, metrics2.expected_margin)
 
 
 def test_win_probability():
