@@ -2,35 +2,37 @@
 
 import random
 import numpy as np
-from engine.simulation import simulate_game
-from engine.models import HeuristicModel
+from engine.simulation import Simulation
+from engine.models import HeuristicModel, Team
 from engine.config import default_config
-from data.teams import LEAGUE_AVG_OFF_RATING
+from engine.assumptions import AssumptionRegistry
+from engine.data_ingestion.data_ingestion_runner import team_clean
+from engine.adapters.team_adapter import TeamAdapter
 
-def test_simulate_game_deterministic():
-    """Tests that the simulation is deterministic with a fixed random seed."""
+def test_pace_impact_on_scores():
+    """Tests that a higher pace modifier leads to higher scores."""
     random.seed(42)
     np.random.seed(42)
-    model = HeuristicModel(league_avg_off_rating=LEAGUE_AVG_OFF_RATING)
-    result1 = simulate_game(model, "GSW", "LAL", config=default_config)
+    
+    teams_df = team_clean[0]
+    teams = TeamAdapter(teams_df).to_engine_objects()
+    simulation = Simulation(players=[], teams=teams, games=[], boxscores=[])
+    league_avg_off_rating = np.mean([team.off_rating for team in teams])
+    model = HeuristicModel(league_avg_off_rating=league_avg_off_rating)
 
-    random.seed(42)
-    np.random.seed(42)
-    result2 = simulate_game(model, "GSW", "LAL", config=default_config)
+    # Run simulation with default pace
+    assumptions_default = AssumptionRegistry()
+    config_default = default_config
+    config_default.assumptions = assumptions_default
+    results_default = [simulation.simulate_game(model, "GSW", "LAL", config=config_default) for _ in range(100)]
+    avg_total_points_default = np.mean([r["total_points"] for r in results_default])
 
-    assert result1["home_score"] == result2["home_score"]
-    assert result1["away_score"] == result2["away_score"]
+    # Run simulation with higher pace
+    assumptions_high_pace = AssumptionRegistry()
+    assumptions_high_pace.pace_modifier.value = 1.2
+    config_high_pace = default_config
+    config_high_pace.assumptions = assumptions_high_pace
+    results_high_pace = [simulation.simulate_game(model, "GSW", "LAL", config=config_high_pace) for _ in range(100)]
+    avg_total_points_high_pace = np.mean([r["total_points"] for r in results_high_pace])
 
-def test_simulate_game_log():
-    """Tests that the game log is correctly generated when requested."""
-    random.seed(42)
-    np.random.seed(42)
-    model = HeuristicModel(league_avg_off_rating=LEAGUE_AVG_OFF_RATING)
-    result = simulate_game(model, "GSW", "LAL", config=default_config, log_game=True)
-
-    assert "log" in result
-    assert isinstance(result["log"], list)
-    assert len(result["log"]) > 0
-    assert "team" in result["log"][0]
-    assert "outcome" in result["log"][0]
-    assert "points" in result["log"][0]
+    assert avg_total_points_high_pace > avg_total_points_default

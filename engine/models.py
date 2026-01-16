@@ -3,7 +3,62 @@
 import random
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple
+from dataclasses import dataclass, field
 from engine.assumptions import AssumptionRegistry
+
+@dataclass
+class Player:
+    id: int
+    team_id: int
+    minutes: float
+    points: float
+    rebounds: float
+    assists: float
+    steals: float
+    blocks: float
+    fg_pct: float
+
+@dataclass
+class Team:
+    id: int
+    name: str
+    abbreviation: str
+    pace: float
+    off_rating: float
+    def_rating: float
+    efg_pct: float
+    three_pt_rate: float
+    ft_rate: float
+    gp: int = 0
+    w: int = 0
+    l: int = 0
+    pts: float = 0.0
+    rebounds: float = 0.0
+    assists: float = 0.0
+    fg_pct: float = 0.0
+    turnovers: float = 0.0
+
+@dataclass
+class Game:
+    id: int
+    date: str
+    home_team: int
+    away_team: int
+    scores: str
+    plus_minus: float
+
+@dataclass
+class BoxScore:
+    game_id: int
+    team_id: int
+    player_id: int
+    minutes: str
+    pts: int
+    rebounds: int
+    assists: int
+    fg_pct: float
+    plus_minus: int
+
 
 class SimulationModel(ABC):
     """

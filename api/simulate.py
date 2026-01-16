@@ -3,10 +3,9 @@
 import random
 import numpy as np
 from flask import Blueprint, request, jsonify
-from data.teams import TEAM_DATA
-from engine.simulation import run_simulation_with_config
 from engine.config import default_config
 from dataclasses import asdict
+from engine.dependencies import simulation_instance # Use the singleton
 
 # --- Constants ---
 MAX_SIMULATIONS = 25000
@@ -14,7 +13,7 @@ MIN_SIMULATIONS = 1
 
 simulate_bp = Blueprint("simulate", __name__)
 
-@simulate_bp.route("/simulate", methods=["POST"])
+@simulate_bp.route("/", methods=["POST"])
 def simulate():
     data = request.get_json()
 
@@ -29,7 +28,8 @@ def simulate():
     if not home_team_id or not away_team_id:
         return jsonify({"error": "Missing team identifiers"}), 400
 
-    if home_team_id not in TEAM_DATA or away_team_id not in TEAM_DATA:
+    # Use the validation logic from the simulation instance
+    if home_team_id not in simulation_instance.teams_by_abbr or away_team_id not in simulation_instance.teams_by_abbr:
         return jsonify({"error": "Team not found"}), 404
 
     if not (MIN_SIMULATIONS <= num_simulations <= MAX_SIMULATIONS):
@@ -39,7 +39,14 @@ def simulate():
         random.seed(random_seed)
         np.random.seed(random_seed)
 
-    metrics = run_simulation_with_config(home_team_id, away_team_id, num_simulations, default_config)
+    # Use the singleton instance to run the simulation
+    metrics = simulation_instance.run_simulation_with_config(
+        home_team_id=home_team_id, 
+        away_team_id=away_team_id, 
+        num_simulations=num_simulations, 
+        config=default_config,
+        return_distributions=return_distributions
+    )
 
     # Format the output
     output = {

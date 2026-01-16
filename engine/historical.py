@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from typing import Dict
-from engine.simulation import run_simulation_with_config
+from engine.simulation import Simulation
+from engine.models import Team
+from engine.data_ingestion.data_ingestion_runner import team_clean
+from engine.adapters.team_adapter import TeamAdapter
+
 
 @dataclass
 class HistoricalGame:
@@ -12,7 +16,10 @@ class HistoricalGame:
 
     def replay(self) -> Dict:
         """Replay the game using the simulation engine and compare results."""
-        sim_results = run_simulation_with_config(home_team_id=self.team_a, away_team_id=self.team_b, return_distributions=True)
+        teams_df = team_clean[0]
+        teams = TeamAdapter(teams_df).to_engine_objects()
+        simulation = Simulation(players=[], teams=teams, games=[], boxscores=[])
+        sim_results = simulation.run_simulation_with_config(home_team_id=self.team_a, away_team_id=self.team_b, return_distributions=True)
         actual_margin = self.actual_score['home'] - self.actual_score['away']
         
         # Find the percentile of the actual outcome in the simulated distribution

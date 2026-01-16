@@ -8,7 +8,7 @@ def create_app():
     app = Flask(__name__)
 
     # Register Blueprints
-    app.register_blueprint(simulate_bp)
+    app.register_blueprint(simulate_bp, url_prefix="/simulate")
 
     return app
 

@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 from typing import List
-from engine.simulation import run_simulation_with_config
+from engine.simulation import Simulation
 from engine.assumptions import AssumptionRegistry
 from engine.metrics import SimulationMetrics
+from engine.models import Team
+from engine.data_ingestion.data_ingestion_runner import team_clean
+from engine.adapters.team_adapter import TeamAdapter
 
 @dataclass
 class SensitivityResult:
@@ -20,7 +23,10 @@ class SensitivityAnalysis:
 
     def __post_init__(self):
         """Run baseline simulation."""
-        self.base_results = run_simulation_with_config()
+        teams_df = team_clean[0]
+        teams = TeamAdapter(teams_df).to_engine_objects()
+        simulation = Simulation(players=[], teams=teams, games=[], boxscores=[])
+        self.base_results = simulation.run_simulation_with_config()
 
     def run_one_at_a_time(self, assumption_name: str, perturbations: List[float]) -> List[SensitivityResult]:
         """Run sensitivity analysis for a single assumption."""
@@ -36,7 +42,10 @@ class SensitivityAnalysis:
             ))
 
             # Run simulation with perturbed assumptions
-            new_results = run_simulation_with_config(config=None, assumptions=new_assumptions)
+            teams_df = team_clean[0]
+            teams = TeamAdapter(teams_df).to_engine_objects()
+            simulation = Simulation(players=[], teams=teams, games=[], boxscores=[])
+            new_results = simulation.run_simulation_with_config(config=None, assumptions=new_assumptions)
 
             # Compare results
             win_prob_delta = new_results.win_probability['home'] - self.base_results.win_probability['home']
