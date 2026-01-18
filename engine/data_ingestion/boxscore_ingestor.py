@@ -1,23 +1,44 @@
-# engine/data_ingestion/boxscore_ingestor.py
+
+import time
+import logging
+import random
+from nba_api.stats.endpoints import boxscoretraditionalv2, boxscoretraditionalv3
 from engine.data_ingestion.base_ingestor import BaseIngestor
-import pandas as pd
 
 class BoxScoreIngestor(BaseIngestor):
-    def __init__(self, df_list):
-        super().__init__(df_list, name="BoxScore")
+    def __init__(self):
+        super().__init__(df_list=None, name="BoxScore")
 
-    def ingest(self):
-        if not self.df_list:
-            return []
+    def ingest(self, game_ids, api_version, timeout, delay):
+        """
+        Executes a single, flexible ingestion pass on a chunk of game_ids.
+        The behavior of this function is controlled entirely by its parameters.
+        """
+        total_games_in_chunk = len(game_ids)
+        logging.info(f"Executing pass for {total_games_in_chunk} games using API_VERSION='{api_version}', TIMEOUT={timeout}s, DELAY={delay}")
+        
+        successful_box_scores = []
+        failed_game_ids = []
+        
+        endpoint_class = boxscoretraditionalv2.BoxScoreTraditionalV2 if api_version == 'v2' else boxscoretraditionalv3.BoxScoreTraditionalV3
 
-        # Concatenate all dataframes
-        combined_df = pd.concat(self.df_list, ignore_index=True)
+        for i, game_id in enumerate(game_ids):
+            try:
+                if i > 0 and i % 5 == 0:
+                    logging.info(f"  -> Chunk progress: {i}/{total_games_in_chunk}...")
+                
+                api_call = endpoint_class(game_id=game_id, timeout=timeout)
+                boxscore_df = api_call.get_data_frames()[0]
 
-        # Standardize column names to lowercase
-        combined_df.columns = [col.lower() for col in combined_df.columns]
+                # CORRECTED: Use uppercase column name to match API standard
+                boxscore_df['GAME_ID'] = game_id
 
-        # Rename tricode column for consistency
-        if 'teamtricode' in combined_df.columns:
-            combined_df.rename(columns={'teamtricode': 'tricode'}, inplace=True)
+                successful_box_scores.append(boxscore_df)
 
-        return [combined_df]
+            except Exception as e:
+                logging.warning(f"  -> Request failed for game {game_id} (API: {api_version}, Timeout: {timeout}s): {e}")
+                failed_game_ids.append(game_id)
+            
+            time.sleep(delay() if callable(delay) else delay)
+
+        return successful_box_scores, failed_game_ids

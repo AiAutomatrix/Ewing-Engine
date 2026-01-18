@@ -1,0 +1,5 @@
+Phase 5 ingestion complete. Data is normalized and ready for engine simulations.
+Total teams: 3
+1610612753 ORL Orlando Magic
+1610612763 MEM Memphis Grizzlies
+1610612737 ATL Atlanta Hawks

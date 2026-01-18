@@ -1,25 +1,21 @@
 import os
-from engine.data_ingestion.data_ingestion_runner import player_clean, team_clean, game_clean, boxscore_clean
-from engine.adapters.player_adapter import PlayerAdapter
-from engine.adapters.team_adapter import TeamAdapter
-from engine.adapters.game_adapter import GameAdapter
-from engine.adapters.boxscore_adapter import BoxScoreAdapter
 from engine.simulation import Simulation
+from engine.config import SimulationConfig, default_config
 
 # Ensure the logs directory exists
 if not os.path.exists('logs'):
     os.makedirs('logs')
 
-players = PlayerAdapter(player_clean[0]).to_engine_objects()
-teams = TeamAdapter(team_clean[0]).to_engine_objects()
-games = GameAdapter(game_clean[0]).to_engine_objects()
-boxscores = BoxScoreAdapter(boxscore_clean[0]).to_engine_objects()
+def run_single_game_simulation(simulation_instance: Simulation, home_team_abbr: str, away_team_abbr: str, num_simulations: int = None, config: SimulationConfig = None):
+    """
+    Runs a single game simulation with the given parameters and returns the simulation analysis.
+    """
+    if config is None:
+        config = default_config
 
-sim = Simulation(players=players, teams=teams, games=games, boxscores=boxscores)
-results = sim.run_historical_replay()
-
-# Export results to CSV
-sim.export_to_csv(results, 'logs/historical_simulation.csv')
-
-print("Simulation complete. Results saved to logs/historical_simulation.csv")
-print(results.head())
+    return simulation_instance.run_simulation_with_config(
+        home_team_id=home_team_abbr,
+        away_team_id=away_team_abbr,
+        num_simulations=num_simulations,
+        config=config
+    )

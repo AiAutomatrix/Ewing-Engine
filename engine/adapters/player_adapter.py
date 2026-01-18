@@ -9,6 +9,7 @@ class PlayerAdapter:
         for _, row in self.df.iterrows():
             p = Player(
                 id=row['player_id'],
+                name=row['name'],
                 team_id=row['team_id'],
                 minutes=row.get('minutes', 0),
                 points=row.get('pts', 0),

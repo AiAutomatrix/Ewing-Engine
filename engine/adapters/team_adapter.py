@@ -20,11 +20,11 @@ class TeamAdapter:
                 fg_pct=row.get('fg_pct', 0),
                 turnovers=row.get('tov', 0),
                 pace=row.get('pace', 0),
-                off_rating=row.get('offrating', 0),
-                def_rating=row.get('defrating', 0),
+                off_rating=row.get('off_rating', 0),
+                def_rating=row.get('def_rating', 0),
                 efg_pct=row.get('efg_pct', 0),
-                three_pt_rate=row.get('ar', 0),
-                ft_rate=row.get('ftr', 0),
+                three_pt_rate=row.get('three_pt_rate', 0),
+                ft_rate=row.get('ft_rate', 0),
             )
             teams.append(t)
         return teams

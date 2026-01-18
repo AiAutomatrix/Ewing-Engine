@@ -8,3 +8,4 @@ pytest
 scipy
 nba_api
 pandas
+pyarrow

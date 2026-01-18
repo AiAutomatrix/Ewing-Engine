@@ -1,6 +1,6 @@
 # engine/models.py
 
-import random
+import numpy as np
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple
 from dataclasses import dataclass, field
@@ -9,6 +9,7 @@ from engine.assumptions import AssumptionRegistry
 @dataclass
 class Player:
     id: int
+    name: str  # Added name attribute
     team_id: int
     minutes: float
     points: float
@@ -91,10 +92,11 @@ class HeuristicModel(SimulationModel):
 
     def get_possession_outcome(self, off_team: Dict, def_team: Dict, assumptions: AssumptionRegistry) -> Tuple[int, str]:
         """Simplified possession outcome model based on team-level heuristics."""
+        # A good defense has a lower def_rating, so this correctly adjusts the offensive rating down.
         adj_off_rating = off_team["off_rating"] * (def_team["def_rating"] / self.league_avg_off_rating)
         expected_pts_per_pos = adj_off_rating / 100.0
 
-        rand = random.random()
+        rand = np.random.rand()
 
         # Use assumptions from the registry
         three_prob = off_team["three_pt_rate"] * assumptions.shot_type_mix.value
@@ -112,10 +114,11 @@ class HeuristicModel(SimulationModel):
 
         if p0 < 0:
             total = p3 + p2 + pft + p_turnover
-            p3 /= total
-            p2 /= total
-            pft /= total
-            p_turnover /= total
+            if total > 0:
+                p3 /= total
+                p2 /= total
+                pft /= total
+                p_turnover /= total
 
         if rand < p3:
             return 3, "3PT"

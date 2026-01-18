@@ -10,16 +10,17 @@ class PlayerStatsIngestor(BaseIngestor):
         if not self.df_list:
             return []
 
-        # Concatenate all dataframes
-        combined_df = pd.concat(self.df_list, ignore_index=True)
+        processed_dfs = []
+        for df in self.df_list:
+            # Standardize column names to lowercase
+            df.columns = [col.lower() for col in df.columns]
 
-        # Standardize column names to lowercase
-        combined_df.columns = [col.lower() for col in combined_df.columns]
+            # Rename columns for consistency
+            if 'team_abbreviation' in df.columns:
+                df.rename(columns={'team_abbreviation': 'tricode'}, inplace=True)
+            if 'person_id' in df.columns:
+                df.rename(columns={'person_id': 'player_id'}, inplace=True)
+            
+            processed_dfs.append(df)
 
-        # Rename columns for consistency
-        if 'team_abbreviation' in combined_df.columns:
-            combined_df.rename(columns={'team_abbreviation': 'tricode'}, inplace=True)
-        if 'person_id' in combined_df.columns:
-            combined_df.rename(columns={'person_id': 'player_id'}, inplace=True)
-
-        return [combined_df]
+        return processed_dfs

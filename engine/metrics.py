@@ -1,7 +1,8 @@
 import numpy as np
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import List, Dict, Optional
 from scipy.stats import skew, kurtosis
+from engine.config import SimulationConfig # Import SimulationConfig
 
 @dataclass
 class SimulationMetrics:
@@ -13,10 +14,11 @@ class SimulationMetrics:
     score_variance: Dict[str, float]
     margin_distribution: List[int]
     win_margin_distribution: Dict[int, int]
-    score_skewness: Dict[str, float] = None
-    score_kurtosis: Dict[str, float] = None
+    score_skewness: Optional[Dict[str, float]] = None
+    score_kurtosis: Optional[Dict[str, float]] = None
+    score_distributions: Optional[Dict[str, List[int]]] = None
 
-def analyze_results(results: List[Dict], return_distributions: bool = False) -> SimulationMetrics:
+def analyze_results(results: List[Dict], return_distributions: bool = False, config: SimulationConfig = None) -> SimulationMetrics:
     """
     Analyzes raw simulation outputs and returns structured metrics.
     """
@@ -55,11 +57,12 @@ def analyze_results(results: List[Dict], return_distributions: bool = False) -> 
             "away": np.var(away_scores),
             "total": np.var(total_points)
         },
-        "margin_distribution": margins if return_distributions else [],
+        "margin_distribution": [],
         "win_margin_distribution": win_margin_distribution
     }
 
     if return_distributions:
+        metrics["margin_distribution"] = margins
         metrics["score_skewness"] = {
             "home": skew(home_scores),
             "away": skew(away_scores),
@@ -69,6 +72,10 @@ def analyze_results(results: List[Dict], return_distributions: bool = False) -> 
             "home": kurtosis(home_scores),
             "away": kurtosis(away_scores),
             "total": kurtosis(total_points)
+        }
+        metrics["score_distributions"] = {
+            "home": home_scores,
+            "away": away_scores
         }
 
     return SimulationMetrics(**metrics)
