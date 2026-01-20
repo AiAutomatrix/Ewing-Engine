@@ -8,8 +8,8 @@ def test_replay_vs_simulation_divergence():
     print(f"\n--- Running Replay vs Simulation Divergence Test for Game ID: {game_id} ---")
 
     try:
-        # 1. Initialize the global simulation instance
-        simulation_instance = get_simulation_instance()
+        # 1. Initialize the global simulation instance, forcing a reload to get the latest code
+        simulation_instance = get_simulation_instance(force_reload=True)
 
         # 2. Instantiate the Engine
         engine = Engine(simulation_instance=simulation_instance)
@@ -59,49 +59,15 @@ def test_replay_vs_simulation_divergence():
         print(f"Stochastic Sim Avg Score (100 runs): {home_team_abbr} {sim_home_score_avg:.2f} - {away_team_abbr} {sim_away_score_avg:.2f}")
 
         # Assertions for divergence
-        # We expect a high probability that a stochastic simulation average will not perfectly match
-        # a single historical outcome. Due to small sample sizes (100 sim), it might occasionally match
-        # closely, but typically it should be different.
-        # For this test, we are looking for *functional* divergence.
-        # Let's assert it's not the exact same point estimate.
-        
-        # Note: Depending on the complexity of the HeuristicModel, with few simulations,
-        # it might sometimes perfectly match. For now, we'll assert they are different
-        # enough not to be exact integer matches. A floating point comparison is better.
-        # For initial divergence check, non-equality is sufficient.
-        
-        # However, for a test proving divergence, we need stronger proof.
-        # A simple check: do not expect average to match exact historical score.
-        # If the average of 100 simulations *exactly* matches the historical score,
-        # it implies lack of variability, which is a problem.
-        # We need to consider floating point comparisons for averages.
-        
-        # Given the instruction to "assert results diverge", a simple inequality is appropriate.
-        # It's highly improbable for 100 simulations' average to *exactly* match the historical score.
-
-        # Let's refine the divergence assertion:
         # The key is that the historical replay should be perfect, while the simulation
         # introduces variability, meaning its *average* should not be expected to be
-        # the exact historical score, and definitely not identical if seed=None.
+        # the exact historical score.
 
         # First, ensure the replay result actually matches the historical average from game_scores
         assert actual_home_score == simulation_instance.game_scores[game_id]['home']
         assert actual_away_score == simulation_instance.game_scores[game_id]['away']
 
         # Assert that the stochastic simulation average is not an exact integer match to the historical score.
-        # Due to floating point nature of averages, direct != might be too strict.
-        # We'll assert that the average simulation score is not *exactly* the historical score.
-        # This will mostly pass if there's any stochasticity.
-        
-        # If the model is purely deterministic when run_simulation_with_config is called,
-        # and it always produces the same outcome for a single simulation as the replay,
-        # then this assertion could fail. But with np.random.normal for pace and random.random for outcome,
-        # it should always produce variance for num_simulations > 1.
-        
-        # The current HeuristicModel has random elements (random.random() for possession outcome,
-        # np.random.normal for possession_count). So, the average of 100 simulations will almost
-        # certainly not exactly equal the single historical outcome.
-        
         assert not (abs(sim_home_score_avg - actual_home_score) < 0.001 and abs(sim_away_score_avg - actual_away_score) < 0.001), \
             "Stochastic simulation average too close to historical; expected divergence."
 

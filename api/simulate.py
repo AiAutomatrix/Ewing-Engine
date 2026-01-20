@@ -5,9 +5,9 @@ import numpy as np
 from flask import Blueprint, request, jsonify
 from engine.config import default_config
 from dataclasses import asdict
-from engine.dependencies import simulation_instance # Use the singleton
+from engine.dependencies import get_simulation_instance
 
-# --- Constants ---
+# --- Constants -- -
 MAX_SIMULATIONS = 25000
 MIN_SIMULATIONS = 1
 
@@ -27,6 +27,8 @@ def simulate():
 
     if not home_team_id or not away_team_id:
         return jsonify({"error": "Missing team identifiers"}), 400
+
+    simulation_instance = get_simulation_instance()
 
     # Use the validation logic from the simulation instance
     if home_team_id not in simulation_instance.teams_by_abbr or away_team_id not in simulation_instance.teams_by_abbr:

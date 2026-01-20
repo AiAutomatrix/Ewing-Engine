@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional
-from engine.assumptions import Assumption, AssumptionRegistry, default_assumptions
+from engine.assumptions import Assumption, AssumptionRegistry
 from engine.calibration import CalibrationParams
 
 @dataclass
@@ -15,9 +15,24 @@ class SimulationConfig:
     pace_std_dev: float = 3.0
     min_pace: int = 85
     max_pace: int = 115
+    pace_modifier: Optional[float] = None
     
     # Assumptions
-    assumptions: AssumptionRegistry = field(default_factory=lambda: default_assumptions)
+    assumptions: AssumptionRegistry = field(default_factory=AssumptionRegistry)
     
     # Calibration
     calibration: Optional[CalibrationParams] = None
+
+    def __post_init__(self):
+        """
+        Post-initialization to handle conditional logic, particularly for
+        updating the AssumptionRegistry based on direct config parameters.
+        """
+        if self.pace_modifier is not None:
+            self.assumptions.pace_modifier = Assumption(
+                name="pace_modifier",
+                value=self.pace_modifier,
+                description="Overridden pace modifier."
+            )
+
+default_config = SimulationConfig()

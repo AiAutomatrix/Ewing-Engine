@@ -47,3 +47,5 @@ class AssumptionRegistry:
         value=3.5,
         description="Points awarded to the home team."
     ))
+
+default_assumptions = AssumptionRegistry()

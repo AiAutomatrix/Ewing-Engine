@@ -5,11 +5,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, Tuple
 from dataclasses import dataclass, field
 from engine.assumptions import AssumptionRegistry
+from .config import CalibrationParams
 
 @dataclass
 class Player:
     id: int
-    name: str  # Added name attribute
+    name: str
     team_id: int
     minutes: float
     points: float
@@ -62,46 +63,38 @@ class BoxScore:
 
 
 class SimulationModel(ABC):
-    """
-    Abstract base class for simulation models. Defines the contract
-    for how models can be swapped into the simulation engine.
-    """
     @abstractmethod
-    def get_possession_outcome(self, off_team: Dict, def_team: Dict, assumptions: AssumptionRegistry) -> Tuple[int, str]:
-        """
-        Simulates a single possession and returns the number of points scored and the outcome type.
-
-        Args:
-            off_team (Dict): The offensive team's data.
-            def_team (Dict): The defensive team's data.
-            assumptions (AssumptionRegistry): The assumptions to use for the simulation.
-
-        Returns:
-            Tuple[int, str]: A tuple containing the points scored (0, 1, 2, or 3) 
-                             and a string describing the outcome (e.g., '2PT', 'MISS').
-        """
+    def get_possession_outcome(self, off_team: Dict, def_team: Dict, assumptions: AssumptionRegistry, is_home: bool, calibration: CalibrationParams = None, pace_modifier: float = 1.0) -> Tuple[int, str]:
         pass
 
 
 class HeuristicModel(SimulationModel):
-    """
-    The default simulation model, using team-level stats and heuristics.
-    """
-    def __init__(self, league_avg_off_rating: float):
+    def __init__(self, league_avg_off_rating: float, calibration: CalibrationParams = None):
         self.league_avg_off_rating = league_avg_off_rating
+        self.calibration = calibration if calibration is not None else CalibrationParams()
 
-    def get_possession_outcome(self, off_team: Dict, def_team: Dict, assumptions: AssumptionRegistry) -> Tuple[int, str]:
-        """Simplified possession outcome model based on team-level heuristics."""
-        # A good defense has a lower def_rating, so this correctly adjusts the offensive rating down.
+    def get_possession_outcome(self, off_team: Dict, def_team: Dict, assumptions: AssumptionRegistry, is_home: bool, calibration: CalibrationParams = None, pace_modifier: float = 1.0) -> Tuple[int, str]:
+        calc_calibration = calibration if calibration is not None else self.calibration
+
         adj_off_rating = off_team["off_rating"] * (def_team["def_rating"] / self.league_avg_off_rating)
-        expected_pts_per_pos = adj_off_rating / 100.0
 
+        if is_home:
+            adj_off_rating *= calc_calibration.home_offense_scalar
+        else:
+            adj_off_rating *= calc_calibration.away_offense_scalar
+
+        # Apply pace modifier to the expected points calculation
+        expected_pts_per_pos = (adj_off_rating / 100.0) * calc_calibration.global_score_multiplier * pace_modifier
+
+        # The rest of the logic remains the same, ensuring probabilities are scaled correctly
         rand = np.random.rand()
 
-        # Use assumptions from the registry
-        three_prob = off_team["three_pt_rate"] * assumptions.shot_type_mix.value
-        two_prob = (1 - off_team["three_pt_rate"]) * (1 - assumptions.shot_type_mix.value)
-        ft_prob = off_team["ft_rate"] * assumptions.free_throw_rate.value
+        three_pt_rate = off_team.get("three_pt_rate", 0.35)
+        ft_rate = off_team.get("ft_rate", 0.20)
+
+        three_prob = three_pt_rate * assumptions.shot_type_mix.value
+        two_prob = (1 - three_pt_rate) * (1 - assumptions.shot_type_mix.value)
+        ft_prob = ft_rate * assumptions.free_throw_rate.value
 
         current_ev = (3 * three_prob) + (2 * two_prob) + (1 * ft_prob)
         scale_factor = expected_pts_per_pos / current_ev if current_ev > 0 else 1.0
@@ -119,7 +112,7 @@ class HeuristicModel(SimulationModel):
                 p2 /= total
                 pft /= total
                 p_turnover /= total
-
+        
         if rand < p3:
             return 3, "3PT"
         elif rand < p3 + p2:
