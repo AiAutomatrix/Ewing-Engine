@@ -73,18 +73,23 @@ class Simulation:
         }
 
         avg_pace = (home_team_sim_stats["pace"] + away_team_sim_stats["pace"]) / 2.0
-        pace_modifier = config.pace_modifier if config.pace_modifier is not None else 1.0
         
-        # Possession count is now clamped, and modifier is passed to scoring model
-        final_pace = avg_pace # The modifier is applied in the model
-        possession_count = int(np.random.normal(final_pace, config.pace_std_dev))
+        # Use calibration parameters if available
+        if config.calibration:
+            pace_modifier = config.calibration.pace_modifier
+            pace_std_dev = config.calibration.pace_standard_deviation
+        else:
+            pace_modifier = 1.0
+            pace_std_dev = 10.0
+
+        final_pace = avg_pace
+        possession_count = int(np.random.normal(final_pace, pace_std_dev))
         possession_count = max(config.min_pace, min(config.max_pace, possession_count))
 
         home_score = 0
         away_score = 0
 
         for _ in range(possession_count // 2): 
-            # Pass the pace_modifier to the scoring model
             points, _ = model.get_possession_outcome(home_team_sim_stats, away_team_sim_stats, config.assumptions, is_home=True, calibration=config.calibration, pace_modifier=pace_modifier)
             home_score += points
 

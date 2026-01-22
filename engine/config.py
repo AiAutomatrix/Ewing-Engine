@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass, field
 from typing import Optional
-from engine.assumptions import Assumption, AssumptionRegistry
-from engine.calibration import CalibrationParams
+from .assumptions import Assumption, AssumptionRegistry
+from .calibration import CalibrationParams
 
 @dataclass
 class SimulationConfig:
